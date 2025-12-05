@@ -1,0 +1,177 @@
+name: Prod CI
+
+# 说明：
+# - CI/CD 与本地开发统一使用 ./scripts/dx 命令系统。
+# - Node 版本需与仓库要求一致（.nvmrc 指定 20.11.0），并与 SDK engines 对齐（>= 20.11.0）。
+
+on:
+  workflow_dispatch:
+  # pull_request:
+  # push:
+  #   branches: [main]
+
+jobs:
+  install-lint-test:
+    runs-on: ubuntu-latest
+    env:
+      NX_DAEMON: "false"
+
+    steps:
+      - name: 加载 SSH 私钥
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.AWS_SSH_PRIVATE_KEY }}
+
+      - name: 部署 ai项目 到服务器
+        env:
+          HOST: ${{ secrets.AWS_SSH_HOST }}
+          PORT: ${{ secrets.AWS_SSH_PORT }}
+          USER: ${{ secrets.AWS_SSH_USER }}
+          # 来自“Use workflow from”的选择：branch / tag 与其名称
+          REF_NAME: ${{ github.ref_name }}
+          REF_TYPE: ${{ github.ref_type }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "$PORT" -H "$HOST" >> ~/.ssh/known_hosts
+
+          # 把 ref 传进远端会话
+          ssh -p "$PORT" "$USER@$HOST" "export REF_NAME='${REF_NAME}'; export REF_TYPE='${REF_TYPE}'; bash -s" <<'REMOTE'
+          set -euo pipefail
+
+          # === 关键修复：显式加载 NVM ===
+          # CI 的 SSH 是“非交互式”Shell，不会自动读取 .bashrc，导致找不到 nvm 或使用了错误的系统默认 Node (v21.7.3)
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+          echo "=== 开始部署 ai服务 ==="
+          
+          # 尝试切换到 .nvmrc 指定的版本 (v20)，如果失败则尝试 v20，再失败则保持原样
+          if command -v nvm >/dev/null 2>&1; then
+             nvm use 22 || nvm use 20 || echo "NVM 切换失败，使用当前版本: $(node -v)"
+          fi
+
+          echo "[INFO] REF_TYPE=${REF_TYPE:-<none>}  REF_NAME=${REF_NAME:-<none>}"
+
+          export DEST_PATH="/opt/noveai"
+          export PNPM_HOME="/root/.local/share/pnpm"
+          export PATH="$PNPM_HOME:/usr/local/bin:$PATH"
+          export CI=1 NX_DAEMON=false CHOKIDAR_USEPOLLING=1 WATCHPACK_POLLING=true
+
+          cd "$DEST_PATH"
+
+          # 有改动先藏起来
+          if ! git diff-index --quiet HEAD --; then git stash || true; fi
+
+          # 同步远端引用
+          git fetch --tags --prune --force origin
+          git fetch origin --prune
+
+          CURRENT_BRANCH="$(git symbolic-ref -q --short HEAD || true)"
+          echo "[INFO] 当前分支: ${CURRENT_BRANCH:-detached}"
+
+          # === 关键：根据 UI 选择切换版本（兼容 Branch / Tag / 直接 SHA） ===
+          if [ -n "${REF_NAME:-}" ]; then
+            if [ "${REF_TYPE:-}" = "tag" ]; then
+              echo "[INFO] 切到 TAG: ${REF_NAME}"
+              git checkout -f "refs/tags/${REF_NAME}"
+            elif [ "${REF_TYPE:-}" = "branch" ]; then
+              echo "[INFO] 切到 BRANCH: ${REF_NAME}"
+              if git show-ref --verify --quiet "refs/heads/${REF_NAME}"; then
+                git checkout -f "${REF_NAME}"
+              else
+                git checkout -b "${REF_NAME}" "origin/${REF_NAME}"
+              fi
+              git reset --hard "origin/${REF_NAME}"
+            else
+              echo "[INFO] 视作 COMMIT/SHA: ${REF_NAME}"
+              git fetch origin "${REF_NAME}" || true
+              git checkout -f "${REF_NAME}"
+            fi
+          else
+            # 没指定 ref：只有在“当前就在某个分支”时才 pull；detached 时改到 main
+            if [ -n "$CURRENT_BRANCH" ]; then
+              echo "[INFO] 未指定 ref，pull 当前分支：$CURRENT_BRANCH"
+              git pull --ff-only origin "$CURRENT_BRANCH"
+            else
+              echo "[INFO] 未指定 ref 且当前 detached，切到 main"
+              git checkout -f main || git checkout -b main origin/main
+              git reset --hard origin/main
+            fi
+          fi
+
+          # 子模块/清理（如用得到）
+          git submodule update --init --recursive || true
+          git clean -fdx -e '.env.local' -e '.env.production' -e '.env.production.local' -e 'apps/backend/.env.local' -e 'apps/backend/.env.production.local'
+
+          # 生成根级 .env.staging.local（供 backend 运行）
+          echo "[$(date)] 写入 .env.staging.local"
+          rm -f ./.env.staging.local || true
+          cat > ./.env.staging.local << 'ENV_STAGING'
+          # 敏感环境变量占位模板
+          # 说明：此文件仅列出 scripts/config/local-env-allowlist.jsonc 中的密钥字段。
+          # 请在对应的 .env.<env>.local（例如 .env.development.local、.env.production.local）中填写真实值。
+          # 非敏感的业务配置请移至 .env.<env> 等非 local 文件。
+          # 占位符固定为 ${{ secrets.AWS_SSH_HOST }}，校验将拒绝其他写法。
+
+          # 数据库配置
+          POSTGRES_HOST=${{ secrets.POSTGRES_HOST }}
+          POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+
+          # Redis 配置
+          REDIS_HOST=${{ secrets.REDIS_HOST }}
+          REDIS_PORT=${{ secrets.REDIS_PORT }}
+          REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
+          REDIS_DB=${{ secrets.REDIS_DB }}
+          REDIS_URL=${{ secrets.REDIS_URL }}
+
+          # JWT / 应用密钥
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+
+          # 邮件服务
+          RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}
+        
+          ENV_STAGING
+
+
+          echo "[$(date)] 停止 ai全部 服务"
+          pm2 stop noveai-backend || true
+          pm2 stop noveai-front || true
+          #pm2 stop admin || true
+          #/opt/maintenance-auto-redirect/maintenance_enable.sh || true
+          
+
+          # 用锁文件保证依赖一致（部署 tag 强烈建议）
+          if command -v pnpm >/dev/null 2>&1; then
+            pnpm install --frozen-lockfile
+          else
+            npm ci
+          fi
+
+          echo "[$(date)] 构建 & 迁移数据库"
+          ./scripts/dx build shared --prod
+          ./scripts/dx db generate
+          ./scripts/dx db migrate --prod -Y
+          ./scripts/dx db seed --prod -Y 
+          ./scripts/dx build backend --prod
+          ./scripts/dx build front --prod
+          ./scripts/dx build admin --prod
+
+          echo "[$(date)] 同步 admin 前端到 /opt/noveai-admin-www"
+          # 备份现有文件到 /opt/noveai-admin-www/bak
+          TS="$(date +%Y%m%d-%H%M%S)"
+          tar -C /opt/noveai/dist/admin-front -czf "/opt/noveai-admin-www/bak/admin-front-${TS}.tgz" .
+          cp -rf /opt/noveai/dist/admin-front/* /opt/noveai-admin-www/
+
+
+          echo "[$(date)] 启动 ai全部 服务"
+          pm2 start noveai-backend || true
+          pm2 start noveai-front || true
+          #pm2 start admin || true
+          pm2 status  || true
+          #/opt/maintenance-auto-redirect/maintenance_disable.sh || true
+          echo "=== 部署完成 ==="
+          REMOTE
