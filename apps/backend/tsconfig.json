@@ -1,0 +1,40 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "incremental": true,
+    "target": "ES2021",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "baseUrl": "./",
+    "module": "commonjs",
+    "paths": {
+      "@/*": ["src/*"],
+      "@/utils": ["src/utils"],
+      "@/types": ["src/types"],
+      "@/common/*": ["src/common/*"],
+      "@ai/shared": ["../../packages/shared/src/index.ts"]
+    },
+    "types": ["node", "jest", "fastify", "express"],
+    "strict": false,
+    "strictBindCallApply": true,
+    "strictNullChecks": false,
+    "strictPropertyInitialization": false,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitAny": false,
+    "declaration": true,
+    "outDir": "../../dist/backend",
+    "removeComments": true,
+    "sourceMap": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "e2e/**/*",
+    "**/*.spec.ts",
+    "**/*.test.ts"
+  ]
+}

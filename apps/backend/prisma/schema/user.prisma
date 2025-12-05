@@ -1,0 +1,58 @@
+model User {
+  id                   String     @id @default(cuid())
+  email                String     @unique
+  emailVerified        Boolean    @default(false) @map("email_verified")
+  emailVerifiedAt      DateTime?  @map("email_verified_at")
+  password             String
+  nickname             String?
+  status               UserStatus @default(active)
+  isGuest              Boolean    @default(false) @map("is_guest") /// 是否为游客账户
+  guestRequiresBinding Boolean    @default(false) @map("guest_requires_binding") /// 游客是否需要绑定正式账户
+  deletedAt            DateTime?  @map("deleted_at") /// 软删除时间
+  createdAt            DateTime   @default(now()) @map("created_at")
+  updatedAt            DateTime   @updatedAt @map("updated_at")
+
+  // 登录凭证（支持扩展更多类型）
+  credentials UserCredential[]
+
+  // RBAC 角色关系
+  roleAssignments UserRole[]
+
+  // 钱包
+  wallet Wallet?
+
+  // 支付订单
+  paymentOrders PaymentOrder[]
+
+  // 会员记录
+  memberships UserMembership[]
+
+  @@map("users")
+}
+
+enum CredentialType {
+  email
+}
+
+model UserCredential {
+  id        String         @id @default(cuid())
+  userId    String
+  type      CredentialType
+  value     String
+  secret    String?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  deletedAt DateTime?      @map("deleted_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([type, value], name: "type_value")
+  @@map("user_credentials")
+}
+
+enum UserStatus {
+  active
+  inactive
+  suspended
+  banned
+}

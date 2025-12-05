@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light dark;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  background: #0f172a;
+  color: #f8fafc;
+}
+
+body.no-global-header main {
+  padding-top: 0 !important;
+}
+
+body.no-global-header header[data-role='app-header'] {
+  display: none !important;
+}

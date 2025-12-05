@@ -1,0 +1,176 @@
+// ============================================================================
+// Wallet 模块 Schema
+// ============================================================================
+
+// ----------------------------------------------------------------------------
+// 枚举定义
+// ----------------------------------------------------------------------------
+
+/// 系统钱包ID
+enum SystemWalletID {
+  // 收入类
+  SYSTEM_AI_REVENUE
+  SYSTEM_GIFT_REVENUE
+  SYSTEM_MARKET_REVENUE
+  // 支出类
+  SYSTEM_MODEL_PROVIDER_COST
+  SYSTEM_COMMISSION
+  SYSTEM_MARKETING
+  SYSTEM_REFUND
+  // 中转类
+  SYSTEM_DEPOSIT
+  SYSTEM_WITHDRAW
+  SYSTEM_ESCROW_MARKET
+  // 特殊类
+  SYSTEM_RISK_RESERVE
+  SYSTEM_RECYCLE
+  // 废弃（兼容）
+  SYSTEM_FEE
+  SYSTEM_ACTIVITY
+}
+
+/// 交易类型
+enum TransactionType {
+  // 基础类型
+  RECHARGE // 充值
+  WITHDRAW // 提现
+  TRANSFER // 转账
+  CONSUMPTION // 消费
+  REFUND // 退款
+  // 冻结相关
+  FREEZE // 冻结
+  UNFREEZE // 解冻
+  // 业务类型
+  TIP // 打赏
+  COMMISSION // 佣金
+  REWARD // 奖励
+  ADMIN_ADJUST // 管理员调整
+  SYSTEM_FEE // 系统手续费
+}
+
+/// 交易状态
+enum TransactionStatus {
+  PENDING // 待处理
+  COMPLETED // 已完成
+  FAILED // 失败
+  CANCELLED // 已取消
+}
+
+// ----------------------------------------------------------------------------
+// 资产类型
+// ----------------------------------------------------------------------------
+
+/// 资产类型（如：积分、钻石、USDT 等）
+model AssetType {
+  id        String   @id @default(cuid())
+  code      String   @unique /// 资产代码（如 SCORE、DIAMOND、USDT）
+  name      String /// 资产名称
+  symbol    String? /// 资产符号
+  precision Int      @default(6) /// 精度（小数位数）
+  sortOrder Int      @default(0) /// 排序顺序
+  isActive  Boolean  @default(true) /// 是否启用
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // 关联
+  walletAssets  WalletAsset[]
+  transactions  WalletTransaction[]
+  snapshots     SystemWalletSnapshot[]
+  paymentOrders PaymentOrder[]
+
+  @@map("asset_types")
+}
+
+// ----------------------------------------------------------------------------
+// 钱包
+// ----------------------------------------------------------------------------
+
+/// 钱包（用户钱包或系统钱包）
+model Wallet {
+  id        String   @id @default(cuid())
+  userId    String?  @unique @map("user_id") /// 用户ID（系统钱包为 null）
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // 关联
+  user                 User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assets               WalletAsset[]
+  outgoingTransactions WalletTransaction[] @relation("FromWallet")
+  incomingTransactions WalletTransaction[] @relation("ToWallet")
+
+  @@map("wallets")
+}
+
+/// 钱包资产（一个钱包可以持有多种资产）
+model WalletAsset {
+  id            String   @id @default(cuid())
+  walletId      String   @map("wallet_id")
+  assetTypeId   String   @map("asset_type_id")
+  balance       Decimal  @default(0) @db.Decimal(30, 6) /// 可用余额
+  frozenBalance Decimal  @default(0) @map("frozen_balance") @db.Decimal(30, 6) /// 冻结余额
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // 关联
+  wallet    Wallet    @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  assetType AssetType @relation(fields: [assetTypeId], references: [id])
+
+  @@unique([walletId, assetTypeId])
+  @@map("wallet_assets")
+}
+
+// ----------------------------------------------------------------------------
+// 交易记录
+// ----------------------------------------------------------------------------
+
+/// 钱包交易记录
+model WalletTransaction {
+  id           String            @id @default(cuid())
+  fromWalletId String?           @map("from_wallet_id") /// 转出钱包ID
+  toWalletId   String?           @map("to_wallet_id") /// 转入钱包ID
+  assetTypeId  String            @map("asset_type_id")
+  amount       Decimal           @db.Decimal(30, 6) /// 交易金额
+  type         TransactionType /// 交易类型
+  status       TransactionStatus @default(COMPLETED) /// 交易状态
+  reason       String? /// 交易原因/备注
+  metadata     Json? /// 扩展元数据
+  uniqueId     String?           @unique @map("unique_id") /// 幂等键
+  userId       String?           @map("user_id") /// 关联用户ID（冗余字段，用于聚合查询）
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+
+  // 关联
+  fromWallet Wallet?   @relation("FromWallet", fields: [fromWalletId], references: [id])
+  toWallet   Wallet?   @relation("ToWallet", fields: [toWalletId], references: [id])
+  assetType  AssetType @relation(fields: [assetTypeId], references: [id])
+
+  @@index([fromWalletId])
+  @@index([toWalletId])
+  @@index([assetTypeId])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+  @@index([userId])
+  @@map("wallet_transactions")
+}
+
+// ----------------------------------------------------------------------------
+// 系统钱包快照
+// ----------------------------------------------------------------------------
+
+/// 系统钱包快照（用于统计和审计）
+model SystemWalletSnapshot {
+  id            String   @id @default(cuid())
+  walletId      String   @map("wallet_id") /// 系统钱包ID
+  assetTypeId   String   @map("asset_type_id")
+  balance       Decimal  @db.Decimal(30, 6) /// 快照时余额
+  frozenBalance Decimal  @default(0) @map("frozen_balance") @db.Decimal(30, 6)
+  snapshotAt    DateTime @map("snapshot_at") /// 快照时间
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  // 关联
+  assetType AssetType @relation(fields: [assetTypeId], references: [id])
+
+  @@index([walletId, assetTypeId, snapshotAt])
+  @@map("system_wallet_snapshots")
+}

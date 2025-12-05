@@ -1,0 +1,12 @@
+{
+  // 豁免键：这些键在非 *.local 文件中可以使用非占位符值
+  "exempted": [
+    // Seed 配置（布尔值，非敏感）
+    "SEED_INIT_WALLET_BALANCE",
+
+    // 日志配置（非敏感，允许在 .env.* 设置默认值并可在 .local 覆盖）
+    "LOG_CONTEXT_FILTER",
+    "LOG_LEVEL"
+  ]
+}
+

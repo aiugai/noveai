@@ -1,0 +1,14 @@
+model SystemSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique @db.VarChar(100)
+  value       String   @db.Text
+  type        String   @default("string") @db.VarChar(20)
+  description String?  @db.VarChar(255)
+  category    String   @default("general") @db.VarChar(50)
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@map("system_settings")
+}

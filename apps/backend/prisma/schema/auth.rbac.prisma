@@ -1,0 +1,29 @@
+model Role {
+  id        String             @id @default(cuid())
+  code      String             @unique // admin, moderator, super_admin ...
+  name      String
+  createdAt DateTime           @default(now())
+  users     UserRole[]
+  admins    NewAdminUserRole[]
+}
+
+model UserRole {
+  id     String @id @default(cuid())
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  role   Role   @relation(fields: [roleId], references: [id])
+  roleId String
+
+  @@unique([userId, roleId])
+}
+
+model NewAdminUserRole {
+  id          String    @id @default(cuid())
+  adminUser   AdminUser @relation("NewAdminUserRoles", fields: [adminUserId], references: [id], onDelete: Cascade)
+  adminUserId String
+  role        Role      @relation(fields: [roleId], references: [id])
+  roleId      String
+
+  @@unique([adminUserId, roleId])
+  @@map("new_admin_user_roles")
+}

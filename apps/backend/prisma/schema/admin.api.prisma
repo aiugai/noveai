@@ -1,0 +1,44 @@
+model AdminApi {
+  id          String          @id @default(cuid())
+  parentId    String?
+  type        AdminApiType
+  title       String          @db.VarChar(50)
+  code        String?         @unique @db.VarChar(50)
+  method      AdminApiMethod?
+  path        String?         @db.VarChar(100)
+  description String?         @db.VarChar(100)
+  sort        Int             @default(0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  parent      AdminApi?       @relation("AdminApiHierarchy", fields: [parentId], references: [id])
+  children    AdminApi[]      @relation("AdminApiHierarchy")
+}
+
+enum AdminApiType {
+  DIRECTORY
+  API
+}
+
+enum AdminApiMethod {
+  GET
+  POST
+  PUT
+  PATCH
+  DELETE
+}
+
+/// 审计日志表 - 记录管理员操作历史
+model AuditLog {
+  id           String   @id @default(cuid())
+  type         String // 操作类型,如 'USER_SOFT_DELETED', 'USER_FORCE_DELETED'
+  operatorId   String   @map("operator_id") // 执行操作的管理员 ID
+  targetUserId String?  @map("target_user_id") // 被操作的用户 ID
+  snapshot     Json? // 删除前快照 (JSON 格式,限制 5KB)
+  metadata     Json? // 元数据,存储额外信息
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([type, createdAt])
+  @@index([targetUserId])
+  @@index([operatorId])
+  @@map("audit_logs")
+}

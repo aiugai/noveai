@@ -1,0 +1,19 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "supertest": ["./helpers/supertest-compat"],
+      "@/*": ["../src/*"],
+      "src/*": ["../src/*"]
+    },
+    "typeRoots": [
+      "../src/@types",
+      "../node_modules/@types",
+      "./node_modules/@types"
+    ],
+    "types": ["node", "jest"]
+  },
+  "include": ["**/*.ts", "**/*.d.ts"],
+  "exclude": []
+}

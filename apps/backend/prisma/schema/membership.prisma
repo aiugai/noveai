@@ -1,0 +1,26 @@
+// Membership 模块 Schema
+
+/// 会员等级
+enum MembershipTier {
+  SMALL
+  BIG
+}
+
+/// 用户会员记录（支持多条历史记录）
+model UserMembership {
+  id            String         @id @default(cuid())
+  userId        String         @map("user_id")
+  tier          MembershipTier
+  startAt       DateTime       @map("start_at")
+  endAt         DateTime       @map("end_at")
+  sourceOrderId String?        @map("source_order_id")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceOrder PaymentOrder? @relation(fields: [sourceOrderId], references: [id])
+
+  @@index([userId, endAt])
+  @@index([sourceOrderId])
+  @@map("user_memberships")
+}

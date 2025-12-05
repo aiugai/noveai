@@ -1,0 +1,201 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Grunt intermediate storage
+.grunt
+
+# OpenAPI generated code
+apps/sdk/src/
+
+# Bower dependency directory
+bower_components
+
+# node-waf configuration
+.lock-wscript
+
+# Compiled binary addons
+build/Release
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+*.local
+docker/.env
+
+# Keep environment templates and specific environment files
+!.env.example
+!.env.development
+!.env.production
+!.env.test
+!.env.e2e
+
+# parcel-bundler cache
+.cache
+.parcel-cache
+
+# Next.js build output
+.next/
+out/
+
+# Nuxt.js build / generate output
+.nuxt
+dist
+
+# Gatsby files
+.cache/
+/public
+
+# Storybook build outputs
+.out
+.storybook-out
+
+# Temporary folders
+tmp/
+temp/*
+.tmp/
+# But keep admin-api-backup for reference
+!temp/admin-api-backup/
+
+# Logs
+logs
+*.log
+
+# Local temp files
+.tmp_sorted.json
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Cursor commands (personal notes)
+.cursor/commands/
+
+# Build outputs
+build/
+dist/
+/lib/
+lib-cov/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# TypeScript build output
+**/*.js.map
+**/*.d.ts.map
+
+# Prisma
+# Keep schema but ignore generated files
+prisma/generated/
+
+# Ignore nested Prisma generated clients
+prisma/**/generated/
+**/prisma/**/generated/
+
+# Ignore generated Prisma clients in apps
+apps/*/generated/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Turbo
+.turbo/
+
+# Vercel
+.vercel
+
+#NX
+.nx
+
+# Docker
+.dockerignore
+
+# Test results
+test-results/
+apps/backend/certs/server.crt
+apps/backend/certs/server.key
+
+# Stagewise local config (environment-specific)
+apps/*/stagewise.json
+
+
+
+
+# MCP and IDE configuration files (local only)
+.cursor/mcp.json
+.cursor/mcp.json.bak
+.vscode/mcp.json
+.vscode/mcp.json.bak
+.codex/config.json
+.codex/config.json.bak
+.codex/config.toml
+.mcp.json
+.mcp.json.bak
+claude_desktop_config.json
+.claude/specs/*
+
+
+.nx/cache
+.nx/workspace-data
+
+node_modules
+apps/sdk/node_modules
+packages/shared/node_modules
+apps/admin-front/node_modules
+apps/front/node_modules
+apps/backend/node_modules
+packages/shared/node_modules
+

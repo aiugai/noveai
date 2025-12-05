@@ -1,0 +1,29 @@
+model AdminUser {
+  id         String          @id @default(cuid())
+  username   String          @unique @db.VarChar(50)
+  password   String          @db.VarChar(200)
+  nickName   String?         @db.VarChar(50)
+  email      String?         @db.VarChar(50)
+  headPic    String?         @db.VarChar(100)
+  phone      String?         @db.VarChar(20)
+  isFrozen   Boolean         @default(false)
+  createTime DateTime        @default(now())
+  updateTime DateTime        @updatedAt
+  roles      AdminUserRole[]
+
+  // 新的RBAC角色关系
+  newRoleAssignments NewAdminUserRole[] @relation("NewAdminUserRoles")
+}
+
+model AdminUserRole {
+  id         String    @id @default(cuid())
+  userId     String
+  roleId     String
+  createTime DateTime  @default(now())
+  role       AdminRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user       AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@index([roleId])
+  @@index([userId])
+}

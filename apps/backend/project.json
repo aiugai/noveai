@@ -1,0 +1,142 @@
+{
+  "name": "backend",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/backend/src",
+  "projectType": "application",
+  "tags": ["scope:backend", "type:app"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/dist/backend"],
+      "options": {
+        "commands": [
+          "node ../../scripts/lib/run-with-version-env.js --app backend -- bash -lc 'nest build && pnpm run postbuild'"
+        ],
+        "cwd": "apps/backend",
+        "parallel": false
+      },
+      "configurations": {
+        "production": {
+          "commands": [
+            "node ../../scripts/lib/run-with-version-env.js --app backend -- bash -lc 'nest build && pnpm run postbuild'"
+          ]
+        },
+        "development": {
+          "commands": [
+            "node ../../scripts/lib/run-with-version-env.js --app backend -- bash -lc 'nest build && pnpm run postbuild'"
+          ]
+        }
+      },
+      "dependsOn": ["prisma:generate"]
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node ../../dist/backend/apps/backend/src/main.js",
+        "cwd": "apps/backend"
+      },
+      "dependsOn": ["build"]
+    },
+    "swagger": {
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/dist/openapi/backend.json"],
+      "options": {
+        "command": "pnpm exec ts-node -r tsconfig-paths/register src/swagger/export-openapi.ts",
+        "cwd": "apps/backend",
+        "env": {
+          "SKIP_PRISMA_CONNECT": "true"
+        }
+      }
+    },
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "NODE_NO_WARNINGS=1 nodemon --signal SIGTERM --watch 'src/**/*.ts' --ignore 'src/**/*.spec.ts' --exec 'node -r ts-node/register -r tsconfig-paths/register' src/main.ts",
+        "cwd": "apps/backend"
+      }
+    },
+    "start": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node ../../dist/backend/apps/backend/src/main.js",
+        "cwd": "apps/backend"
+      },
+      "dependsOn": ["build"]
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["apps/backend/src/**/*.ts", "apps/backend/e2e/**/*.ts"],
+        "eslintConfig": "eslint.config.js",
+        "fix": true
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/apps/backend"],
+      "options": {
+        "jestConfig": "apps/backend/jest.config.cjs",
+        "passWithNoTests": true
+      }
+    },
+    "test:e2e": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cross-env APP_ENV=e2e NODE_OPTIONS=--experimental-vm-modules jest --config e2e/jest-e2e.json --forceExit --detectOpenHandles",
+        "cwd": "apps/backend"
+      }
+    },
+    "prisma:generate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "prisma generate --schema=./prisma/schema",
+        "cwd": "apps/backend"
+      },
+      "inputs": ["{projectRoot}/prisma/schema/**/*"],
+      "outputs": ["{projectRoot}/node_modules/.prisma/client"]
+    },
+    "prisma:migrate:dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "prisma migrate dev --schema=./prisma/schema",
+        "cwd": "apps/backend"
+      }
+    },
+    "prisma:migrate:deploy": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "prisma migrate deploy --schema=./prisma/schema",
+        "cwd": "apps/backend"
+      }
+    },
+    "prisma:migrate:reset": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "prisma migrate reset --force --schema=./prisma/schema",
+        "cwd": "apps/backend"
+      }
+    },
+    "prisma:db:seed": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "prisma db seed --schema=./prisma/schema",
+        "cwd": "apps/backend"
+      }
+    },
+    "prisma:format": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "prisma format --schema=./prisma/schema",
+        "cwd": "apps/backend"
+      }
+    },
+    "prisma:studio": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "prisma studio --schema=./prisma/schema",
+        "cwd": "apps/backend"
+      }
+    }
+  }
+}

@@ -1,0 +1,102 @@
+// ============================================================================
+// Payment 模块 Schema
+// ============================================================================
+
+// ----------------------------------------------------------------------------
+// 枚举定义
+// ----------------------------------------------------------------------------
+
+/// 支付订单状态
+enum PaymentOrderStatus {
+  PENDING // 待支付
+  COMPLETED // 已完成
+  FAILED // 失败
+  EXPIRED // 已过期
+  CANCELLED // 已取消
+}
+
+/// 充值套餐状态
+enum RechargePackageStatus {
+  ACTIVE // 启用
+  INACTIVE // 停用
+}
+
+/// 支付订单来源类型
+enum PaymentOrderSourceType {
+  INTERNAL // 内部充值（已登录用户）
+  EXTERNAL // 外部商户（无需登录）
+}
+
+// ----------------------------------------------------------------------------
+// 支付订单
+// ----------------------------------------------------------------------------
+
+/// 支付订单（支持充值场景和商户支付中心场景）
+model PaymentOrder {
+  id                String             @id @default(cuid())
+  userId            String?            @map("user_id") /// 用户ID（可选，商户外部支付时可能没有内部用户）
+  amount            Decimal            @db.Decimal(30, 6) /// 支付金额
+  currency          String             @default("USD") /// 支付币种（如 USD、CNY）
+  channel           String /// 支付渠道（如 WGQPAY、MOCK、BALANCE）
+  status            PaymentOrderStatus @default(PENDING)
+  externalOrderId   String?            @map("external_order_id") /// 外部订单号（支付网关订单ID）
+  targetAssetTypeId String?            @map("target_asset_type_id") /// 目标资产类型ID
+  targetAssetAmount Decimal?           @map("target_asset_amount") @db.Decimal(30, 6) /// 目标资产数量
+  exchangeRate      Decimal?           @map("exchange_rate") @db.Decimal(30, 6) /// 汇率
+  paymentDetails    Json?              @map("payment_details") /// 支付详情（含套餐信息、商户上下文等）
+  callbackData      Json?              @map("callback_data") /// 回调数据
+  expiresAt         DateTime?          @map("expires_at") /// 过期时间
+  completedAt       DateTime?          @map("completed_at") /// 完成时间
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+
+  // 商户支付中心扩展字段
+  merchantId      String? @map("merchant_id") /// 商户标识（如 wallet_recharge、activity_purchase）
+  externalUserId  String? @map("external_user_id") /// 商户的外部用户ID
+  callbackUrl     String? @map("callback_url") @db.VarChar(500) /// 商户回调URL
+  returnUrl       String? @map("return_url") @db.VarChar(500) /// 用户支付完成返回URL
+  description     String? @db.VarChar(1000) /// 订单描述
+  businessOrderId String? @map("business_order_id") /// 商户业务订单ID
+
+  // 外部支付扩展字段
+  sourceType    PaymentOrderSourceType @default(INTERNAL) @map("source_type") /// 订单来源类型
+  signatureData Json?                  @map("signature_data") @db.JsonB /// 签名参数（用于审计）
+
+  // 关联
+  user            User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  targetAssetType AssetType?       @relation(fields: [targetAssetTypeId], references: [id])
+  userMemberships UserMembership[]
+
+  @@unique([merchantId, businessOrderId]) /// 商户幂等性唯一约束（防止并发创建重复订单）
+  @@index([userId])
+  @@index([status])
+  @@index([externalOrderId])
+  @@index([createdAt])
+  @@index([status, createdAt]) /// 定时任务查询PENDING订单索引
+  @@index([merchantId]) /// 商户查询索引
+  @@index([sourceType, status, createdAt]) /// 外部订单查询索引
+  @@index([merchantId, createdAt]) /// 商户订单时间查询索引
+  @@map("payment_orders")
+}
+
+/// 充值套餐
+model PaymentRechargePackage {
+  id            String                @id @default(cuid())
+  name          String                @unique /// 内部名称（唯一标识）
+  displayTitle  String                @map("display_title") /// 显示标题
+  badgeLabel    String                @map("badge_label") /// 标签文字
+  priceAmount   Decimal               @map("price_amount") @db.Decimal(10, 2) /// 价格
+  priceCurrency String                @default("USD") @map("price_currency") /// 币种
+  baseScore     Int                   @map("base_score") /// 基础积分
+  bonusPercent  Int                   @default(0) @map("bonus_percent") /// 赠送百分比
+  totalScore    Int                   @map("total_score") /// 总积分
+  sortOrder     Int                   @default(0) @map("sort_order") /// 排序顺序
+  status        RechargePackageStatus @default(ACTIVE)
+  metadata      Json?                 @db.JsonB /// 扩展元数据
+  createdAt     DateTime              @default(now()) @map("created_at")
+  updatedAt     DateTime              @updatedAt @map("updated_at")
+
+  @@index([status, sortOrder])
+  @@index([priceAmount, priceCurrency, status, sortOrder])
+  @@map("payment_recharge_packages")
+}

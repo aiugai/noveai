@@ -1,0 +1,38 @@
+{
+  "name": "shared",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/shared/src",
+  "projectType": "library",
+  "tags": ["scope:shared", "type:lib"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{projectRoot}/dist"],
+      "options": {
+        "commands": [
+          "rimraf dist",
+          "tsc -p tsconfig.json",
+          "esbuild src/index.ts --bundle --format=esm --outfile=dist/index.mjs --sourcemap --platform=browser --external:tslog"
+        ],
+        "cwd": "packages/shared",
+        "parallel": false
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/packages/shared"],
+      "options": {
+        "jestConfig": "packages/shared/jest.config.ts",
+        "passWithNoTests": true
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["packages/shared/**/*.ts"],
+        "eslintConfig": "eslint.config.js"
+      }
+    }
+  }
+}

@@ -1,0 +1,26 @@
+model AdminMenu {
+  id          String        @id @default(cuid())
+  parentId    String?
+  type        AdminMenuType
+  title       String        @db.VarChar(50)
+  icon        String?       @db.VarChar(50)
+  code        String?       @unique @db.VarChar(50)
+  path        String?       @db.VarChar(100)
+  description String?       @db.VarChar(100)
+  i18nKey     String?       @db.VarChar(50)
+  sort        Int           @default(0)
+  isShow      Boolean?      @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  parent      AdminMenu?    @relation("AdminMenuHierarchy", fields: [parentId], references: [id])
+  children    AdminMenu[]   @relation("AdminMenuHierarchy")
+
+  @@unique([parentId, title])
+  @@index([parentId])
+}
+
+enum AdminMenuType {
+  DIRECTORY
+  MENU
+  FEATURE
+}

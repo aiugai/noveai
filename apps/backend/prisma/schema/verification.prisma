@@ -1,0 +1,19 @@
+model VerificationCode {
+  id        String                  @id @default(cuid())
+  email     String
+  code      String
+  purpose   VerificationCodePurpose
+  expiresAt DateTime                @map("expires_at")
+  usedAt    DateTime?               @map("used_at")
+  createdAt DateTime                @default(now()) @map("created_at")
+
+  @@index([email, purpose])
+  @@index([code])
+  @@index([expiresAt])
+  @@map("verification_codes")
+}
+
+enum VerificationCodePurpose {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}

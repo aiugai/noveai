@@ -1,0 +1,35 @@
+// prisma/schema/message-bus.outbox.prisma
+// Outbox 模式：可靠消息记录与派发状态机
+
+enum OutboxStatus {
+  PENDING
+  CLAIMED
+  SENT
+  RETRY
+  DEAD
+}
+
+model OutboxMessage {
+  id            BigInt       @id @default(autoincrement())
+  topic         String
+  type          String
+  payload       Json
+  status        OutboxStatus @default(PENDING)
+  attempts      Int          @default(0)
+  nextVisibleAt DateTime     @default(now())
+  dedupeKey     String?
+  correlationId String?
+  partitionKey  String?
+  priority      Int?
+  lockedBy      String?
+  lockedAt      DateTime?
+  lastError     String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([status, nextVisibleAt])
+  @@index([topic])
+  @@index([dedupeKey])
+  @@index([correlationId])
+  @@index([createdAt])
+}
