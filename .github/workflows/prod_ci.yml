@@ -104,10 +104,10 @@ jobs:
           git submodule update --init --recursive || true
           git clean -fdx -e '.env.local' -e '.env.production' -e '.env.production.local' -e 'apps/backend/.env.local' -e 'apps/backend/.env.production.local'
 
-          # 生成根级 .env.staging.local（供 backend 运行）
-          echo "[$(date)] 写入 .env.staging.local"
-          rm -f ./.env.staging.local || true
-          cat > ./.env.staging.local << 'ENV_STAGING'
+          # 生成根级 .env.production.local（供 backend 运行）
+          echo "[$(date)] 写入 .env.production.local"
+          rm -f ./.env.production.local || true
+          cat > ./.env.production.local << 'ENV_STAGING'
           # 敏感环境变量占位模板
           # 说明：此文件仅列出 scripts/config/local-env-allowlist.jsonc 中的密钥字段。
           # 请在对应的 .env.<env>.local（例如 .env.development.local、.env.production.local）中填写真实值。
