@@ -154,6 +154,11 @@ export function ExternalRechargeContent() {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
 
+  // 设置页面标题
+  useEffect(() => {
+    document.title = '充值中心'
+  }, [])
+
   // 验证参数
   useEffect(() => {
     if (!externalParams) {

@@ -104,6 +104,7 @@ function RechargeRouter() {
 
   useEffect(() => {
     if (typeof document !== 'undefined') {
+      document.title = '充值中心'
       document.body.classList.add('no-global-header')
     }
 
