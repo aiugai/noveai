@@ -48,10 +48,6 @@
     "MESSAGEBUS_BACKOFF_DELAY_MS",
     // 与前端共享的 API 根路径（浏览器可见）
     "NEXT_PUBLIC_API_BASE_URL",
-    // 静态资源域名（公开），用于生成前端静态链接
-    "NEXT_PUBLIC_CDN_DOMAIN",
-    // 默认背景图（公开），提供给前端展示
-    "NEXT_PUBLIC_DEFAULT_BACKGROUND_IMAGES",
     "OAUTH_CALLBACK_TOKEN_STRATEGY",
     "TEST_LOG_LEVEL",
     "THROTTLE_LIMIT",
